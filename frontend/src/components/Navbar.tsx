@@ -45,10 +45,10 @@ export default function Navbar({ health, modelInfo, onNavigate, activeTab }: Nav
           <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
             <span
               className={`h-2 w-2 rounded-full ${
-                isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                isOnline ? "bg-emerald-500 animate-pulse" : health?.is_demo ? "bg-sky-500" : "bg-amber-500"
               }`}
             />
-            <span>API: {isOnline ? "Online" : "Connecting..."}</span>
+            <span>API: {isOnline ? "Online" : health?.is_demo ? "Demo Mode" : "Standalone"}</span>
           </div>
 
           {/* Model Status */}

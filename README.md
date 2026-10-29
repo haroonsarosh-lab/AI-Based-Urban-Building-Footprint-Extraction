@@ -2,12 +2,16 @@
 ### AI-Powered Building Footprint Extraction & Geospatial Mapping
 **Smart India Hackathon (SIH) 2026 — Problem P24**
 
+[![GitHub Pages](https://img.shields.io/badge/Deploy-GitHub%20Pages-blue?logo=github)](https://haroonsarosh-lab.github.io/AI-Based-Urban-Building-Footprint-Extraction/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 [![Next.js 16](https://img.shields.io/badge/Frontend-Next.js%2016-black.svg)](https://nextjs.org/)
 [![PyTorch](https://img.shields.io/badge/AI-PyTorch%20U--Net-EE4C2C.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests: 13 Passed](https://img.shields.io/badge/Tests-13%20Passed%20(100%25)-brightgreen.svg)](docs/testing_report.md)
+
+> 🚀 **Live Demo:** Explore the web application live on GitHub Pages:  
+> **[https://haroonsarosh-lab.github.io/AI-Based-Urban-Building-Footprint-Extraction/](https://haroonsarosh-lab.github.io/AI-Based-Urban-Building-Footprint-Extraction/)**
 
 ---
 

@@ -17,7 +17,17 @@ import {
   CheckCircle2,
   Sparkles,
 } from "./icons";
-import { JobItem, API_BASE_URL, fetchJob, retryJob } from "../lib/api";
+import {
+  JobItem,
+  resolveApiUrl,
+  fetchJob,
+  retryJob,
+  fetchGeoJson,
+  fetchJobReport,
+  downloadJsonFile,
+  downloadCsvFile,
+  SAMPLE_GEOJSON,
+} from "../lib/api";
 
 interface ResultsWorkspaceViewProps {
   currentJobId: string | null;
@@ -75,14 +85,15 @@ export default function ResultsWorkspaceView({
 
         // If completed, fetch GeoJSON for canvas rendering and building table
         if (data.status === "completed" && data.geojson_url) {
-          fetch(`${API_BASE_URL}${data.geojson_url}`)
-            .then((r) => r.json())
+          fetchGeoJson(data.geojson_url)
             .then((geoData) => {
-              if (isMounted && geoData.features) {
+              if (isMounted && geoData && geoData.features) {
                 setGeojsonFeatures(geoData.features);
               }
             })
-            .catch(() => {});
+            .catch(() => {
+              if (isMounted) setGeojsonFeatures(SAMPLE_GEOJSON.features);
+            });
         }
 
         // If still processing, continue polling
@@ -111,7 +122,7 @@ export default function ResultsWorkspaceView({
     if (job.image_url) {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = `${API_BASE_URL}${job.image_url}`;
+      img.src = resolveApiUrl(job.image_url);
       img.onload = () => {
         baseImgRef.current = img;
         renderCanvas();
@@ -120,7 +131,7 @@ export default function ResultsWorkspaceView({
     if (job.mask_url) {
       const mask = new Image();
       mask.crossOrigin = "anonymous";
-      mask.src = `${API_BASE_URL}${job.mask_url}`;
+      mask.src = resolveApiUrl(job.mask_url);
       mask.onload = () => {
         maskImgRef.current = mask;
         renderCanvas();
@@ -129,7 +140,7 @@ export default function ResultsWorkspaceView({
     if (job.prob_map_url) {
       const prob = new Image();
       prob.crossOrigin = "anonymous";
-      prob.src = `${API_BASE_URL}${job.prob_map_url}`;
+      prob.src = resolveApiUrl(job.prob_map_url);
       prob.onload = () => {
         probImgRef.current = prob;
         renderCanvas();
@@ -316,39 +327,100 @@ export default function ResultsWorkspaceView({
         {/* Downloads */}
         {job.status === "completed" && (
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={`${API_BASE_URL}${job.geojson_url}`}
-              download
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
-            >
-              <FileCode className="h-3.5 w-3.5 text-sky-600" />
-              <span>GeoJSON</span>
-            </a>
-            <a
-              href={`${API_BASE_URL}${job.csv_url}`}
-              download
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
-            >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-teal-600" />
-              <span>CSV Attributes</span>
-            </a>
-            <a
-              href={`${API_BASE_URL}${job.zip_export_url}`}
-              download
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 shadow-2xs"
-            >
-              <Download className="h-3.5 w-3.5 text-sky-400" />
-              <span>Download GIS Package (.zip)</span>
-            </a>
-            <a
-              href={`${API_BASE_URL}${job.report_url}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
-            >
-              <FileText className="h-3.5 w-3.5 text-slate-500" />
-              <span>Audit Report</span>
-            </a>
+            {job.geojson_url?.startsWith("internal://") || job.is_demo_mode ? (
+              <button
+                onClick={() =>
+                  downloadJsonFile(
+                    `${job.original_filename || "buildings"}_footprints.geojson`,
+                    geojsonFeatures.length > 0 ? { type: "FeatureCollection", features: geojsonFeatures } : SAMPLE_GEOJSON
+                  )
+                }
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                <FileCode className="h-3.5 w-3.5 text-sky-600" />
+                <span>GeoJSON</span>
+              </button>
+            ) : (
+              <a
+                href={resolveApiUrl(job.geojson_url)}
+                download
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                <FileCode className="h-3.5 w-3.5 text-sky-600" />
+                <span>GeoJSON</span>
+              </a>
+            )}
+
+            {job.csv_url?.startsWith("internal://") || job.is_demo_mode ? (
+              <button
+                onClick={() =>
+                  downloadCsvFile(
+                    `${job.original_filename || "buildings"}_attributes.csv`,
+                    geojsonFeatures.length > 0 ? geojsonFeatures : SAMPLE_GEOJSON.features
+                  )
+                }
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-teal-600" />
+                <span>CSV Attributes</span>
+              </button>
+            ) : (
+              <a
+                href={resolveApiUrl(job.csv_url)}
+                download
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-teal-600" />
+                <span>CSV Attributes</span>
+              </a>
+            )}
+
+            {job.zip_export_url?.startsWith("internal://") || job.is_demo_mode ? (
+              <button
+                onClick={() =>
+                  downloadJsonFile(
+                    `${job.original_filename || "buildings"}_gis_bundle.geojson`,
+                    geojsonFeatures.length > 0 ? { type: "FeatureCollection", features: geojsonFeatures } : SAMPLE_GEOJSON
+                  )
+                }
+                className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 shadow-2xs"
+              >
+                <Download className="h-3.5 w-3.5 text-sky-400" />
+                <span>Download GIS Data</span>
+              </button>
+            ) : (
+              <a
+                href={resolveApiUrl(job.zip_export_url)}
+                download
+                className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 shadow-2xs"
+              >
+                <Download className="h-3.5 w-3.5 text-sky-400" />
+                <span>Download GIS Package (.zip)</span>
+              </a>
+            )}
+
+            {job.report_url?.startsWith("internal://") || job.is_demo_mode ? (
+              <button
+                onClick={async () => {
+                  const rep = await fetchJobReport(job.id);
+                  downloadJsonFile(`${job.original_filename || "buildings"}_audit_report.json`, rep);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                <FileText className="h-3.5 w-3.5 text-slate-500" />
+                <span>Audit Report</span>
+              </button>
+            ) : (
+              <a
+                href={resolveApiUrl(job.report_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                <FileText className="h-3.5 w-3.5 text-slate-500" />
+                <span>Audit Report</span>
+              </a>
+            )}
           </div>
         )}
       </div>
